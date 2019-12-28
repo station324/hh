@@ -1,0 +1,11 @@
+*.o
+*.so
+exec
+test/
+static_check.sh
+gdb-guide
+archive/
+code/game-record.d
+data/
+
+

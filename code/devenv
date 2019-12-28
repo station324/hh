@@ -1,0 +1,1 @@
+nvim -O2 handmade.c
