@@ -310,8 +310,7 @@ typedef struct {
     s32 Z;
     vec2 dP;
     vec2 ddP;
-    // TODO(RAMIN): which number is which direction?
-    u8 Face; // player facing direction can be 0 to 3
+    u8 Face; // player facing direction can be 0 to 3, they come from an enum
 
     r32 Zr; // for jump
     r32 dZ; // for jump

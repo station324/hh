@@ -175,7 +175,9 @@ internal_function void
 BlitBitmap(
         loaded_bitmap *Bitmap, 
         game_video_buffer *Buffer, 
-        vec2 Loc)
+        vec2 Loc,
+	r32 Opacity
+	)
 { 
     s32 BitmapMinX = 0;
     s32 BitmapMaxX = Bitmap->Width - 1;
@@ -217,7 +219,7 @@ BlitBitmap(
             u32 SourceColor = Source[SourcePos_ml];
             u32 DestColor = Dest[X + Y*Buffer->Width];
 
-            r32 Alpha = (r32)(SourceColor >> 24) / 255.0f;
+            r32 Alpha = (r32)((SourceColor >> 24) / 255.0f) * Opacity;
 
             u8  SourceRed = (SourceColor >> 16) & 0xff;
             u8  DestRed = (DestColor >> 16) & 0xff;
@@ -1040,22 +1042,27 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	    {
 		case EntityType_Player: {
 		    //DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 0.0f);
-		    BlitBitmap(&GameState->HeroShadowBitmap, VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y}});
-		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
-		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
-		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
+		    r32 ShadowOpacity = 1.0 - 0.02*EntityHigh->Zr*WorldInfo->TileSideInMeters;
+		    if (ShadowOpacity < 0) {
+			ShadowOpacity  = 0;
+		    }
+
+		    BlitBitmap(&GameState->HeroShadowBitmap, VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y}}, ShadowOpacity);
+		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
+		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
+		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
 		} break;
 		case EntityType_Wall: {
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
 		    BlitBitmap(&GameState->TreeBitmap, 
-			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
+			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}}, 1.0);
 		} break;
 		case EntityType_Monster: {
 		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
+		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
 		} break;
 		case EntityType_Familiar: {
-		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
+		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
 		} break;
 		default: {
