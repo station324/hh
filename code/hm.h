@@ -286,6 +286,18 @@ typedef struct {
     u32 *Beginning;
 } loaded_bitmap;
 
+typedef union {
+    struct {
+	loaded_bitmap Direction[4];
+    };
+    struct {
+	loaded_bitmap Right;
+	loaded_bitmap Back;
+	loaded_bitmap Left;
+	loaded_bitmap Front;
+    };
+} directional_bitmap_set;
+
 typedef enum {
     EntityType_Player,
     EntityType_Wall,
@@ -298,6 +310,7 @@ typedef struct {
     s32 Z;
     vec2 dP;
     vec2 ddP;
+    // TODO(RAMIN): which number is which direction?
     u8 Face; // player facing direction can be 0 to 3
 
     r32 Zr; // for jump
@@ -322,7 +335,6 @@ typedef struct {
     low_entity *Low;
     high_entity *High;
 } entity;
-
 
 typedef struct {
     world_info WorldInfo;
@@ -352,12 +364,11 @@ typedef struct {
     loaded_bitmap TreeBitmap;
 
     union {
-        loaded_bitmap HeroBitmap[4];
+        directional_bitmap_set HeroBitmap[3];
         struct {
-            loaded_bitmap HeroRightBitmap;
-            loaded_bitmap HeroBackBitmap;
-            loaded_bitmap HeroLeftBitmap;
-            loaded_bitmap HeroFrontBitmap;
+            directional_bitmap_set HeroHeadBitmap;
+            directional_bitmap_set HeroTorsoBitmap;
+            directional_bitmap_set HeroLegsBitmap;
         };
     };
 

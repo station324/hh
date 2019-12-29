@@ -279,6 +279,10 @@ enum tile_content {
     TileContent_Nothing, TileContent_Memory, TileContent_Empty, TileContent_Wall, TileContent_DoorUp, TileContent_DoorDown,
 } TileContent;
 
+enum direction {
+    Direction_Left, Direction_Back, Direction_Right, Direction_Front, 
+} Direction;
+
 internal_function inline r32 DistanceSq(vec2 A, vec2 B)
 {
     r32 Result = Inner(Minus(A,B), Minus(A,B));
@@ -351,7 +355,7 @@ MakeEntityHighWithPos(game_state *GameState, vec2 Pos, s32 LowIndex)
 
             EntityHigh->dP = (vec2){{0,0}};
             EntityHigh->ddP = (vec2){{0,0}};
-            EntityHigh->Face = 3;
+            EntityHigh->Face = Direction_Front;
 
             EntityHigh->LowIndex = LowIndex;
         }
@@ -617,10 +621,18 @@ GAME_INITIALIZE_STATE(GameInitializeState)
     GameState->World.FirstFreeBlock = 0;
 
     GameState->BackGroundBitMap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/grass.bmp");
-    GameState->HeroRightBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-right.bmp");
-    GameState->HeroBackBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-back.bmp");
-    GameState->HeroLeftBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-left.bmp");
-    GameState->HeroFrontBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-front.bmp");
+    GameState->HeroHeadBitmap.Right = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-right-head.bmp");
+    GameState->HeroHeadBitmap.Left = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-left-head.bmp");
+    GameState->HeroHeadBitmap.Front = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-front-head.bmp");
+    GameState->HeroHeadBitmap.Back = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-back-head.bmp");
+    GameState->HeroTorsoBitmap.Right = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-right-torso.bmp");
+    GameState->HeroTorsoBitmap.Left = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-left-torso.bmp");
+    GameState->HeroTorsoBitmap.Front = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-front-torso.bmp");
+    GameState->HeroTorsoBitmap.Back = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-back-torso.bmp");
+    GameState->HeroLegsBitmap.Right = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-right-leg.bmp");
+    GameState->HeroLegsBitmap.Left = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-left-leg.bmp");
+    GameState->HeroLegsBitmap.Front = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-front-leg.bmp");
+    GameState->HeroLegsBitmap.Back = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-back-leg.bmp");
     GameState->TreeBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/tree.bmp");
 
     // by default all controllers are
@@ -844,21 +856,20 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             // determine the direction the player is facing
             // based on his velocity
             // TODO: make this based on acceleration
-            // TODO(ramin): use enum instead of 0-3
             if (Abs(PlayerHigh->dP.X) > Abs(PlayerHigh->dP.Y)) {
                 if (PlayerHigh->dP.X > 0) {
-                    PlayerHigh->Face = 0;
+                    PlayerHigh->Face = Direction_Left;
                 }
                 else {
-                    PlayerHigh->Face = 2;
+                    PlayerHigh->Face = Direction_Right;
                 }
             }
             else {
                 if (PlayerHigh->dP.Y > 0) {
-                    PlayerHigh->Face = 1;
+                    PlayerHigh->Face = Direction_Back;
                 }
                 else {
-                    PlayerHigh->Face = 3;
+                    PlayerHigh->Face = Direction_Front;
                 }
             }
 
@@ -1017,24 +1028,35 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             vec2 EntityDim = Scale(WorldInfo->MetersToPixels, D);
             vec2 PosToMin = Scale(-0.5f, EntityDim);
             vec2 EntityMin = Sum(EntityPos, PosToMin);
-            vec2 EntityMax = Sum(EntityMin, EntityDim);
+	    vec2 EntityMax = Sum(EntityMin, EntityDim);
 
-            if (EntityLow->Type == EntityType_Player) {
-                // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 0.0f);
-                BlitBitmap(&GameState->HeroBitmap[EntityHigh->Face], 
-                        VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
-                // BlitBitmap(&GameState->HeroBitmap[GameState->HeroDirection], VideoBuffer, PlayerMinX, PlayerMinY);
-            }
-            else if (EntityLow->Type == EntityType_Wall) {
-                // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-                BlitBitmap(&GameState->TreeBitmap, 
-                        VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
-            }
-            else if (EntityLow->Type == EntityType_Monster) {
-                // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-                BlitBitmap(&GameState->TreeBitmap, 
-                        VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
-            }
-        }
+	    switch (EntityLow->Type) 
+	    {
+		case EntityType_Player: {
+		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 0.0f);
+		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
+		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
+		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
+		} break;
+		case EntityType_Wall: {
+		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
+		    BlitBitmap(&GameState->TreeBitmap, 
+			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
+		} break;
+		case EntityType_Monster: {
+		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
+		    BlitBitmap(&GameState->TreeBitmap, 
+			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
+		} break;
+		case EntityType_Familiar: {
+		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
+		    BlitBitmap(&GameState->TreeBitmap, 
+			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
+		} break;
+		default: {
+		    InvalidGamePath("some entities are not being drawn\n");
+		}
+	    }
+	}
     }
 }
