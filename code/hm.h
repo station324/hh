@@ -231,7 +231,7 @@ typedef struct {
     debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
 } game_memory;
 
-#include "handmade_math.h"
+#include "mat.h"
 
 typedef struct {
     r32 Elapsed;
@@ -289,6 +289,8 @@ typedef struct {
 typedef enum {
     EntityType_Player,
     EntityType_Wall,
+    EntityType_Monster,
+    EntityType_Familiar,
 } entity_type;
 
 typedef struct {
@@ -304,7 +306,7 @@ typedef struct {
     s32 LowIndex;
 } high_entity;
 
-#include "handmade_world.h"
+#include "wor.h"
 typedef struct {
     entity_type Type;
     world_position P;

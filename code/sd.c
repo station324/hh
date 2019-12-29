@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
 		}
 		GameDirectory[LastSlash+1] = '\0';
 
-		char LibraryName[] = "handmade.so";
+		char LibraryName[] = "hm.so";
 		CatString(GameDirectory, LibraryName, GameCodeLibrary);
 	}
 	sdl_game_code Game = SDLLoadGameCode(GameCodeLibrary);

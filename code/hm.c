@@ -1,6 +1,6 @@
 #include "hm.h"
-#include "handmade_intrinsics.h"
-#include "handmade_random.h"
+#include "int.h"
+#include "ran.h"
 
 internal_function world_position 
 AddWPos(world_position Pos, vec2 Move)
@@ -481,6 +481,16 @@ AddLowEntity(game_state *GameState, entity_type EntityType,
         EntityLow->DimInMeters.Y = 0.4f;
         EntityLow->Collides = true;
     }
+    else if (EntityType == EntityType_Familiar) {
+        EntityLow->DimInMeters.X = 1.0f;
+        EntityLow->DimInMeters.Y = 0.4f;
+        EntityLow->Collides = true;
+    }
+    else if (EntityType == EntityType_Monster) {
+        EntityLow->DimInMeters.X = 1.0f;
+        EntityLow->DimInMeters.Y = 0.4f;
+        EntityLow->Collides = true;
+    }
 
     // add the index to the chunk
     // that the entity is in
@@ -764,6 +774,12 @@ GAME_INITIALIZE_STATE(GameInitializeState)
         }
     }
 
+    AddLowEntity(GameState, EntityType_Monster, 
+                        GameState->CenterScreen.X * GameState->WorldInfo.MapWidthInTiles + 6, 
+                        GameState->CenterScreen.Y * GameState->WorldInfo.MapHeightInTiles + 3, 
+                        GameState->CenterScreen.Z,
+			&GameState->TileArena);
+
     UpdateEntityResidenceAndHighRect(GameState, (vec2){{0.0f, 0.0f}});
 }
 
@@ -1010,6 +1026,11 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 // BlitBitmap(&GameState->HeroBitmap[GameState->HeroDirection], VideoBuffer, PlayerMinX, PlayerMinY);
             }
             else if (EntityLow->Type == EntityType_Wall) {
+                // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
+                BlitBitmap(&GameState->TreeBitmap, 
+                        VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
+            }
+            else if (EntityLow->Type == EntityType_Monster) {
                 // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
                 BlitBitmap(&GameState->TreeBitmap, 
                         VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
