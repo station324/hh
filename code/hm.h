@@ -371,6 +371,7 @@ typedef struct {
             directional_bitmap_set HeroLegsBitmap;
         };
     };
+    loaded_bitmap HeroShadowBitmap;
 
     vec2_s32 HeroPosInBitmap; // position is based on the center of pixels he touches the ground
     vec2_s32 TreePosInBitmap; // position is based on the center of pixels he touches the ground

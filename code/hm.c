@@ -488,7 +488,7 @@ AddLowEntity(game_state *GameState, entity_type EntityType,
     else if (EntityType == EntityType_Familiar) {
         EntityLow->DimInMeters.X = 1.0f;
         EntityLow->DimInMeters.Y = 0.4f;
-        EntityLow->Collides = true;
+        EntityLow->Collides = false;
     }
     else if (EntityType == EntityType_Monster) {
         EntityLow->DimInMeters.X = 1.0f;
@@ -633,6 +633,7 @@ GAME_INITIALIZE_STATE(GameInitializeState)
     GameState->HeroLegsBitmap.Left = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-left-leg.bmp");
     GameState->HeroLegsBitmap.Front = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-front-leg.bmp");
     GameState->HeroLegsBitmap.Back = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-back-leg.bmp");
+    GameState->HeroShadowBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/hero-shadow.bmp");
     GameState->TreeBitmap = DEBUGLoadPNG(Thread, Memory->DEBUGPlatformReadEntireFile, "../data/tree.bmp");
 
     // by default all controllers are
@@ -788,6 +789,11 @@ GAME_INITIALIZE_STATE(GameInitializeState)
 
     AddLowEntity(GameState, EntityType_Monster, 
                         GameState->CenterScreen.X * GameState->WorldInfo.MapWidthInTiles + 6, 
+                        GameState->CenterScreen.Y * GameState->WorldInfo.MapHeightInTiles + 3, 
+                        GameState->CenterScreen.Z,
+			&GameState->TileArena);
+    AddLowEntity(GameState, EntityType_Familiar, 
+                        GameState->CenterScreen.X * GameState->WorldInfo.MapWidthInTiles + 2, 
                         GameState->CenterScreen.Y * GameState->WorldInfo.MapHeightInTiles + 3, 
                         GameState->CenterScreen.Z,
 			&GameState->TileArena);
@@ -1033,7 +1039,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	    switch (EntityLow->Type) 
 	    {
 		case EntityType_Player: {
-		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 0.0f);
+		    //DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 0.0f);
+		    BlitBitmap(&GameState->HeroShadowBitmap, VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y}});
 		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
 		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
 		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
@@ -1045,13 +1052,11 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		} break;
 		case EntityType_Monster: {
 		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-		    BlitBitmap(&GameState->TreeBitmap, 
-			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
+		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
 		} break;
 		case EntityType_Familiar: {
+		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}});
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-		    BlitBitmap(&GameState->TreeBitmap, 
-			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}});
 		} break;
 		default: {
 		    InvalidGamePath("some entities are not being drawn\n");
