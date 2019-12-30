@@ -2,6 +2,21 @@
 #include "int.h"
 #include "ran.h"
 
+internal_function vec2 Vec2(r32 X, r32 Y) {
+    vec2 Result;
+    Result.X = X;
+    Result.Y = Y;
+    return Result;
+}
+
+internal_function vec3 Vec3(r32 X, r32 Y, r32 Z) {
+    vec2 Result;
+    Result.X = X;
+    Result.Y = Y;
+    Result.Z = Z;
+    return Result;
+}
+
 internal_function world_position 
 AddWPos(world_position Pos, vec2 Move)
 {
@@ -355,8 +370,8 @@ MakeEntityHighWithPos(game_state *GameState, vec2 Pos, s32 LowIndex)
             EntityHigh->P = Pos;
             EntityHigh->Z = EntityLow->P.Chunk.Z;
 
-            EntityHigh->dP = (vec2){{0,0}};
-            EntityHigh->ddP = (vec2){{0,0}};
+            EntityHigh->dP = Vec2(0,0);
+            EntityHigh->ddP = Vec2(0,0);
             EntityHigh->Face = Direction_Front;
 
             EntityHigh->LowIndex = LowIndex;
@@ -513,7 +528,7 @@ UpdateEntityResidenceAndHighRect(game_state *GameState, vec2 EntityOffset)
     // TODO: you can combine the low and high checks to get faster
     // but now i am trying to keep things simple
     rect_center_dim HighRect;
-    HighRect.Center = (vec2){{0.0f, 0.0f}};
+    HighRect.Center = Vec2(0.0f, 0.0f);
     HighRect.Dim = GameState->HighRectDim;
     for (s32 HighIndex = 1; 
             HighIndex <= GameState->HighEntityCount;
@@ -587,7 +602,7 @@ UpdateEntityResidenceAndHighRect(game_state *GameState, vec2 EntityOffset)
                         else 
                         {
                             rect_center_dim HighRect;
-                            HighRect.Center = (vec2){{0,0}};
+                            HighRect.Center = Vec2(0,0);
                             HighRect.Dim = GameState->HighRectDim;
 
                             vec2 Diff = WPosDiff(EntityLow->P, GameState->HighRectCenter);
@@ -664,7 +679,7 @@ GAME_INITIALIZE_STATE(GameInitializeState)
             GameState->CenterScreen.Y * WorldInfo->MapHeightInTiles + WorldInfo->MapHeightInTiles / 2, 
             GameState->CenterScreen.Z);
 
-    GameState->HighRectCenter = AddWPosLarge(GameState->HighRectCenter, (vec2){{0.5f * TILESIDE_IN_METER , 0.5f * TILESIDE_IN_METER}});
+    GameState->HighRectCenter = AddWPosLarge(GameState->HighRectCenter, Vec2(0.5f * TILESIDE_IN_METER , 0.5f * TILESIDE_IN_METER));
 
     // TODO(ramin): must be 3*... but that makes us crash because
     // we need to change the tiles system to use s32 instead of s32
@@ -672,7 +687,7 @@ GAME_INITIALIZE_STATE(GameInitializeState)
     GameState->HighRectDimTiles.Y = 3*WorldInfo->MapHeightInTiles;
     GameState->HighRectDimTiles.Z = 1;
 
-    GameState->HighRectDim = (vec2){{
+    GameState->HighRectDim = Vec2(
         GameState->HighRectDimTiles.X*WorldInfo->TileSideInMeters, 
         GameState->HighRectDimTiles.Y*WorldInfo->TileSideInMeters}};
 
@@ -800,7 +815,7 @@ GAME_INITIALIZE_STATE(GameInitializeState)
                         GameState->CenterScreen.Z,
 			&GameState->TileArena);
 
-    UpdateEntityResidenceAndHighRect(GameState, (vec2){{0.0f, 0.0f}});
+    UpdateEntityResidenceAndHighRect(GameState, Vec2(0.0f, 0.0f));
 }
 
 GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
@@ -903,22 +918,22 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             r32 MaxY = TestEntityHigh->P.Y - PlayerHigh->P.Y + TestEntityLow->DimInMeters.Y/2 + PlayerLow->DimInMeters.Y/2;
 
                             // top wall
-                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, (vec2){{MaxX, MaxY}}, (vec2){{MinX, MaxY}})) {
+                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, Vec2(MaxX, MaxY), Vec2(MinX, MaxY))) {
                                 HitEntityIndex = EntityIndex; 
                             }
 
                             // bottom wall
-                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, (vec2){{MinX, MinY}}, (vec2){{MaxX, MinY}})) {
+                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, Vec2(MinX, MinY), Vec2(MaxX, MinY))) {
                                 HitEntityIndex = EntityIndex; 
                             }
 
                             // left wall
-                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, (vec2){{MinX, MaxY}}, (vec2){{MinX, MinY}})) {
+                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, Vec2(MinX, MaxY), Vec2(MinX, MinY))) {
                                 HitEntityIndex = EntityIndex; 
                             }
 
                             // right wall
-                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, (vec2){{MaxX, MinY}}, (vec2){{MaxX, MaxY}})) {
+                            if (CollideWithLine(PlayerHigh->dP, &BestT, &NextSpeed, Vec2(MaxX, MinY), Vec2(MaxX, MaxY))) {
                                 HitEntityIndex = EntityIndex; 
                             }
 
@@ -974,7 +989,7 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     } // end of controllers loop
 
     { // update HighRectCenter
-        vec2 EntityOffset = (vec2){{0.0f, 0.0f}};
+        vec2 EntityOffset = Vec2(0.0f, 0.0f);
         if (GameState->CameraFollowingPlayer != 0) {
             low_entity *PlayerLow = GetLowEntity(GameState, GameState->CameraFollowingPlayer);
             // high_entity *PlayerHigh = GetHighEntity(GameState, PlayerLow->HighIndex);
@@ -1019,7 +1034,7 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     {  // draw entities
         // TODO(ramin): remove X
-        vec2 HighRectInCameraInTiles = (vec2){{(r32)WorldInfo->MapWidthInTiles/2, (r32)WorldInfo->MapHeightInTiles/2 - 0.5f}};
+        vec2 HighRectInCameraInTiles = Vec2((r32)WorldInfo->MapWidthInTiles/2, (r32)WorldInfo->MapHeightInTiles/2 - 0.5f);
         vec2 O = Scale(WorldInfo->TileSideInPixels, HighRectInCameraInTiles);
         vec2 I = {{WorldInfo->MetersToPixels, 0}}; // vector-i of CS in Pixel coordinate
         vec2 J = {{0, -WorldInfo->MetersToPixels}}; // vector-j of CS in Pixel coordinate
@@ -1047,22 +1062,22 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			ShadowOpacity  = 0;
 		    }
 
-		    BlitBitmap(&GameState->HeroShadowBitmap, VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y}}, ShadowOpacity);
-		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
-		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
-		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
+		    BlitBitmap(&GameState->HeroShadowBitmap, VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y), ShadowOpacity);
+		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
 		} break;
 		case EntityType_Wall: {
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
 		    BlitBitmap(&GameState->TreeBitmap, 
-			    VideoBuffer, (vec2){{EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y}}, 1.0);
+			    VideoBuffer, Vec2(EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y), 1.0);
 		} break;
 		case EntityType_Monster: {
 		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
+		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
 		} break;
 		case EntityType_Familiar: {
-		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, (vec2){{EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y}}, 1.0);
+		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
 		} break;
 		default: {
