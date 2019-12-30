@@ -2,19 +2,47 @@
 #include "int.h"
 #include "ran.h"
 
-internal_function vec2 Vec2(r32 X, r32 Y) {
+internal_function vec2 Vec2(r32 X, r32 Y) 
+{
     vec2 Result;
     Result.X = X;
     Result.Y = Y;
     return Result;
 }
 
-internal_function vec3 Vec3(r32 X, r32 Y, r32 Z) {
-    vec2 Result;
+internal_function vec3 Vec3(r32 X, r32 Y, r32 Z) 
+{
+    vec3 Result;
     Result.X = X;
     Result.Y = Y;
     Result.Z = Z;
     return Result;
+}
+
+typedef struct 
+{
+    loaded_bitmap *Bitmap;
+    vec2 Offset;
+    r32 Opacity;
+} render_piece;
+
+typedef struct 
+{
+    s32 Count;
+#define MAX_RENDER_PIECE_COUNT 8
+    render_piece Pieces[MAX_RENDER_PIECE_COUNT];
+} render_piece_group;
+
+internal_function void PushRenderPiece(render_piece_group *Group, loaded_bitmap *Bitmap, vec2 Offset, vec2 Alignment, r32 Opacity) 
+{
+    Assert(Group->Count < MAX_RENDER_PIECE_COUNT);
+
+    render_piece Piece;
+    Piece.Bitmap = Bitmap;
+    Piece.Offset = Sum(Offset, Alignment);
+    Piece.Opacity = Opacity;
+
+    Group->Pieces[Group->Count++] = Piece;
 }
 
 internal_function world_position 
@@ -687,9 +715,7 @@ GAME_INITIALIZE_STATE(GameInitializeState)
     GameState->HighRectDimTiles.Y = 3*WorldInfo->MapHeightInTiles;
     GameState->HighRectDimTiles.Z = 1;
 
-    GameState->HighRectDim = Vec2(
-        GameState->HighRectDimTiles.X*WorldInfo->TileSideInMeters, 
-        GameState->HighRectDimTiles.Y*WorldInfo->TileSideInMeters}};
+    GameState->HighRectDim = Vec2( GameState->HighRectDimTiles.X*WorldInfo->TileSideInMeters, GameState->HighRectDimTiles.Y*WorldInfo->TileSideInMeters);
 
     GameState->TileArena.Size = Memory->PermanentStorageSize - sizeof(game_state);
     GameState->TileArena.Used = 0;
@@ -1033,13 +1059,14 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // BlitBitmap(&GameState->BackGroundBitMap, VideoBuffer, UpperLeft);
 
     {  // draw entities
-        // TODO(ramin): remove X
         vec2 HighRectInCameraInTiles = Vec2((r32)WorldInfo->MapWidthInTiles/2, (r32)WorldInfo->MapHeightInTiles/2 - 0.5f);
         vec2 O = Scale(WorldInfo->TileSideInPixels, HighRectInCameraInTiles);
         vec2 I = {{WorldInfo->MetersToPixels, 0}}; // vector-i of CS in Pixel coordinate
         vec2 J = {{0, -WorldInfo->MetersToPixels}}; // vector-j of CS in Pixel coordinate
 
+	render_piece_group RenderPieceGroup;
         for (s32 EntityIndex = 1; EntityIndex <= GameState->HighEntityCount; ++EntityIndex) {
+	    RenderPieceGroup.Count = 0;
             high_entity *EntityHigh = GetHighEntity(GameState, EntityIndex);
             low_entity *EntityLow = GetLowEntity(GameState, EntityHigh->LowIndex);
 
@@ -1062,27 +1089,32 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			ShadowOpacity  = 0;
 		    }
 
-		    BlitBitmap(&GameState->HeroShadowBitmap, VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y), ShadowOpacity);
-		    BlitBitmap(&GameState->HeroLegsBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
-		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
-		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->HeroShadowBitmap, Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y -GameState->HeroPosInBitmap.Y), ShadowOpacity);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->HeroLegsBitmap.Direction[EntityHigh->Face], Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->HeroHeadBitmap.Direction[EntityHigh->Face], Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
 		} break;
 		case EntityType_Wall: {
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-		    BlitBitmap(&GameState->TreeBitmap, 
-			    VideoBuffer, Vec2(EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y), 1.0);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->TreeBitmap, Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->TreePosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->TreePosInBitmap.Y), 1.0);
 		} break;
 		case EntityType_Monster: {
 		    DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
-		    BlitBitmap(&GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->HeroTorsoBitmap.Direction[EntityHigh->Face], Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
 		} break;
 		case EntityType_Familiar: {
-		    BlitBitmap(&GameState->HeroHeadBitmap.Direction[EntityHigh->Face], VideoBuffer, Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
+		    PushRenderPiece(&RenderPieceGroup, &GameState->HeroHeadBitmap.Direction[EntityHigh->Face], Vec2(0.0, 0.0), Vec2(EntityPos.X-GameState->HeroPosInBitmap.X , EntityPos.Y - EntityHigh->Zr*WorldInfo->TileSideInMeters -GameState->HeroPosInBitmap.Y), 1.0);
 		    // DrawRectangle(VideoBuffer, EntityMin, EntityMax, 1.0f, 1.0f, 1.0f);
 		} break;
 		default: {
 		    InvalidGamePath("some entities are not being drawn\n");
 		}
+	    }
+
+	    // draw the pieces
+	    for (s32 PieceIndex=0; PieceIndex < RenderPieceGroup.Count; ++PieceIndex) {
+		render_piece Piece = RenderPieceGroup.Pieces[PieceIndex];
+		BlitBitmap(Piece.Bitmap, VideoBuffer, Piece.Offset, Piece.Opacity);
 	    }
 	}
     }
