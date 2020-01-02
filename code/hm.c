@@ -411,7 +411,6 @@ MakeEntityHighWithPos(game_state *GameState, vec2 Pos, s32 LowIndex)
 			EntityHigh->Z = EntityLow->P.Chunk.Z;
 
 			EntityHigh->dP = Vec2(0,0);
-			EntityHigh->ddP = Vec2(0,0);
 			EntityHigh->Face = Direction_Front;
 
 			EntityHigh->LowIndex = LowIndex;
@@ -870,7 +869,7 @@ MoveEntity(game_state *GameState, s32 idx, vec2 ddP, r32 dT) // idx the entity i
 {
 	entity Ent = GetEntityFromHighIndex(GameState, idx);
 	// speed
-	Ent.High->dP = Sum(Scale(0.7f, Ent.High->dP), 
+	Ent.High->dP = Sum(Scale(0.8f, Ent.High->dP), 
 			Scale(dT, ddP));  
 
 
@@ -902,37 +901,39 @@ MoveEntity(game_state *GameState, s32 idx, vec2 ddP, r32 dT) // idx the entity i
 	s32 S = 0; // selected entity index
 	for (int i = 0; i < 4; ++i) { // i = iteration
 		BestT = RemainingT;
-		for (int j = 1; j <= GameState->HighEntityCount; ++j) {
-			if (j != idx) {
-				entity T = GetEntityFromHighIndex(GameState, j);
-				if (T.Low->Collides) {
+		if (Ent.Low->Collides) {
+			for (int j = 1; j <= GameState->HighEntityCount; ++j) {
+				if (j != idx) {
+					entity T = GetEntityFromHighIndex(GameState, j);
+					if (T.Low->Collides) {
 
-					// corners are chosen to include the minkowski sum
-					r32 MinX = T.High->P.X - Ent.High->P.X - T.Low->DimInMeters.X/2 - Ent.Low->DimInMeters.X/2;
-					r32 MaxX = T.High->P.X - Ent.High->P.X + T.Low->DimInMeters.X/2 + Ent.Low->DimInMeters.X/2;
-					r32 MinY = T.High->P.Y - Ent.High->P.Y - T.Low->DimInMeters.Y/2 - Ent.Low->DimInMeters.Y/2;
-					r32 MaxY = T.High->P.Y - Ent.High->P.Y + T.Low->DimInMeters.Y/2 + Ent.Low->DimInMeters.Y/2;
+						// corners are chosen to include the minkowski sum
+						r32 MinX = T.High->P.X - Ent.High->P.X - T.Low->DimInMeters.X/2 - Ent.Low->DimInMeters.X/2;
+						r32 MaxX = T.High->P.X - Ent.High->P.X + T.Low->DimInMeters.X/2 + Ent.Low->DimInMeters.X/2;
+						r32 MinY = T.High->P.Y - Ent.High->P.Y - T.Low->DimInMeters.Y/2 - Ent.Low->DimInMeters.Y/2;
+						r32 MaxY = T.High->P.Y - Ent.High->P.Y + T.Low->DimInMeters.Y/2 + Ent.Low->DimInMeters.Y/2;
 
-					// top wall
-					if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MaxX, MaxY), Vec2(MinX, MaxY))) {
-						S = j; 
+						// top wall
+						if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MaxX, MaxY), Vec2(MinX, MaxY))) {
+							S = j; 
+						}
+
+						// bottom wall
+						if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MinX, MinY), Vec2(MaxX, MinY))) {
+							S = j; 
+						}
+
+						// left wall
+						if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MinX, MaxY), Vec2(MinX, MinY))) {
+							S = j; 
+						}
+
+						// right wall
+						if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MaxX, MinY), Vec2(MaxX, MaxY))) {
+							S = j; 
+						}
+
 					}
-
-					// bottom wall
-					if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MinX, MinY), Vec2(MaxX, MinY))) {
-						S = j; 
-					}
-
-					// left wall
-					if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MinX, MaxY), Vec2(MinX, MinY))) {
-						S = j; 
-					}
-
-					// right wall
-					if (CollideWithLine(Ent.High->dP, &BestT, &nV, Vec2(MaxX, MinY), Vec2(MaxX, MaxY))) {
-						S = j; 
-					}
-
 				}
 			}
 		}
@@ -974,9 +975,9 @@ UpdateFamiliar(game_state *GameState, s32 idx, r32 dT)
 		}
 	}
 	vec2 Acc = {};
-	if (S.High != 0) {
+	if ((S.High != 0) && (Sd > 2.0 * 2.0)) {
 		// move it
-		r32 AccMag = 100.0;
+		r32 AccMag = 70.0;
 		vec2 AccDir = Minus(S.High->P, Fml.High->P);
 		vec2 AccUdr = Scale( 1.0 / sqrt(Sd), AccDir); 
 		Acc = Scale(AccMag, AccUdr);
@@ -1032,11 +1033,12 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 			// normalize AccDirection
 			r32 InputMagnitude = sqrt(Inner(DirectionInput, DirectionInput));
+			vec2 Acc = {};
 			if (InputMagnitude <= 1) {
-				PlayerHigh->ddP = Scale(AccMagnitude, DirectionInput);
+				Acc = Scale(AccMagnitude, DirectionInput);
 			}
 			else {
-				PlayerHigh->ddP = Scale(AccMagnitude/InputMagnitude, DirectionInput);
+				Acc = Scale(AccMagnitude/InputMagnitude, DirectionInput);
 			}
 
 
@@ -1044,8 +1046,9 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			// we don't need to remember everytime we change a high
 			// entity to update its low part as well
 
+			MoveEntity(GameState, PlayerLow->HighIndex, Acc, GameTime->Elapsed);
+
 			// TODO: bundle these together
-			//MoveEntity();
 			world_position NewP = AddWPos(GameState->HighRectCenter, PlayerHigh->P);
 			ChangeEntityLocation(GameState, PlayerIndex, &NewP, &GameState->TileArena);
 		}

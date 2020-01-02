@@ -309,7 +309,6 @@ typedef struct {
     vec2 P; // is in camera coordinate center of the screen is 0,0. unit is meter.
     s32 Z;
     vec2 dP;
-    vec2 ddP;
     u8 Face; // player facing direction can be 0 to 3, they come from an enum
 
     r32 Zr; // for jump
@@ -344,7 +343,9 @@ typedef struct {
     s32 PlayerIndexOfController[MAX_INPUT_DEVICE];
 
     s32 LowEntityCount; 
+
 #define MAX_LOW_ENTITY 100000
+
     low_entity LowEntities[MAX_LOW_ENTITY]; 
 
     s32 HighEntityCount;
